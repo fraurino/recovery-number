@@ -39,5 +39,3 @@ http://localhost:3000/recovery
     "updated_at": 1659492322
 }
 ```
-
-<img src="https://i.imgur.com/50uG7M9.png" />
