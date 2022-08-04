@@ -16,6 +16,8 @@ app.post('/recovery', asyncHandler(async (req, res) => {
      
         const number = req?.body?.number;
         const email = req?.body?.email;
+	
+	console.log(number, email);
 
         const response = await getRecovery(number, email);
         res.json(response);
@@ -34,13 +36,28 @@ async function getRecovery(number, email) {
             throw {"Error": true, "Message": "Error in data request"};
         }
 
-        const browser = await puppeteer.launch({headless: true, devtools: false});
+        const browser = await puppeteer.launch({args: [
+	'--no-sandbox',
+	'--log-level=3',
+                    '--no-default-browser-check',
+                    '--disable-site-isolation-trials',
+                    '--no-experiments',
+                    '--ignore-gpu-blacklist',
+                    '--ignore-certificate-errors',
+                    '--ignore-certificate-errors-spki-list',
+                    '--disable-gpu',
+                    '--disable-extensions',
+                    '--disable-default-apps',
+                    '--enable-features=NetworkService',
+                    '--disable-setuid-sandbox',
+	]});
+
         const page = await browser.newPage();
-        
-        await page.waitForTimeout(10000, async () => {
+	console.log(browser);        
+        await page.waitForTimeout(60000, async () => {
             await page.close();
             await browser.close();
-        })
+       })
 
         await page.setUserAgent('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/84.0.4147.125 Safari/537.36')
         await page.goto('https://www.whatsapp.com/contact/?subject=messenger');
@@ -57,14 +74,14 @@ async function getRecovery(number, email) {
         await page.waitForSelector('textarea[name="your_message"]', { visible: true });
         await page.type('textarea[name="your_message"]', "Eu não enviei spam nesse número, poderiam por gentileza verificar o que aconteceu?")
 
-        await page.waitForSelector('button[aria-label="Avançar"]', { visible: true });
-        await page.click('button[aria-label="Avançar"]');
-        
+        await page.waitForSelector("button[id='submit']");
+	await page.$eval("button[id='submit']", form => form.click() );
+
         ps = Date.now();
         let ts = Math.floor(ps/1000);
 
-        await page.waitForSelector('button[aria-label="Enviar pergunta"]', { visible: true });
-        await page.click('button[aria-label="Enviar pergunta"]');
+        await page.waitForSelector("button[id='submit']", { visible: true });
+	await page.$eval("button[id='submit']", form => form.click() );
 
         await page.waitForSelector('.bold', { visible: true });
         let element = await page.$('.bold')
@@ -85,11 +102,9 @@ async function getRecovery(number, email) {
 
         let response = { "number": number, "email": email, "solicited": false, "success": false, "error": error, 'updated_at': ts}
         return response;
-        
     }
-    
 }
 
 app.listen(port, () => {
-    console.log(`Example app listening on port ${port}`)
+    console.log(`Server is listening on port ${port}`)
 })
